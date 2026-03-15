@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KF">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0d0d0f">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>K ♡ F</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: 300;
+            background: #0d0d0f;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            margin: 0;
+            padding: 0;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 30px;
+        }
+        
+        /* Logo */
+        .logo {
+            font-family: 'Caveat', cursive;
+            font-size: 3.2em;
+            font-weight: 500;
+            color: #e8d4d8;
+            margin-bottom: 50px;
+            letter-spacing: 0.05em;
+        }
+        
+        .logo .heart {
+            display: inline-block;
+            width: 45px;
+            height: 40px;
+            margin: 0 5px;
+            vertical-align: middle;
+            position: relative;
+            top: -9px;
+        }
+        
+        .logo .heart svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 连接按钮 */
+        .connect-btn {
+            padding: 16px 50px;
+            font-family: 'Caveat', cursive;
+            font-size: 1.4em;
+            letter-spacing: 0.1em;
+            border: none;
+            border-radius: 30px;
+            background: rgba(180, 100, 120, 0.2);
+            color: #e8d4d8;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 40px;
+        }
+        
+        .connect-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .connect-btn.connected {
+            background: rgba(180, 100, 120, 0.25);
+            color: #e8d4d8;
+        }
+        
+        /* 心跳线容器 */
+        .heartbeat-container {
+            width: 200px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .heartbeat-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .heartbeat-line {
+            fill: none;
+            stroke: #c49a9e;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+        
+        .heartbeat-line.active {
+            opacity: 1;
+            filter: drop-shadow(0 0 8px rgba(196, 154, 158, 0.5));
+        }
+        
+        /* 计时器 */
+        .timer-display {
+            position: absolute;
+            font-family: 'Caveat', cursive;
+            font-size: 3em;
+            font-weight: 600;
+            color: #e8d4d8;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .timer-display.show {
+            opacity: 1;
+        }
+        
+        /* 控件区域 */
+        .controls {
+            display: none;
+            width: 100%;
+            max-width: 300px;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .controls.show {
+            display: flex;
+        }
+        
+        /* 输入框 */
+        .input-area {
+            width: 100%;
+        }
+        
+        .command-input {
+            width: 100%;
+            padding: 16px 24px;
+            font-family: 'Caveat', cursive;
+            font-size: 1.4em;
+            letter-spacing: 0.05em;
+            border: none;
+            border-radius: 30px;
+            background: rgba(180, 100, 120, 0.2);
+            color: #e8d4d8;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .command-input::placeholder {
+            color: rgba(232, 212, 216, 0.5);
+        }
+        
+        .command-input:focus {
+            background: rgba(180, 100, 120, 0.3);
+        }
+        
+        /* 底部文字 */
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-family: 'Caveat', cursive;
+            font-size: 1.3em;
+            letter-spacing: 0.1em;
+            color: #e8d4d8;
+        }
+        
+        /* 统计按钮 */
+        .stats-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: rgba(196, 154, 158, 0.4);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        .stats-btn:hover, .stats-btn:active {
+            color: rgba(196, 154, 158, 0.8);
+        }
+        
+        /* 统计面板 */
+        .stats-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(13, 13, 15, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .stats-panel.show {
+            display: flex;
+        }
+        
+        .stats-content {
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .stats-title {
+            font-family: 'Caveat', cursive;
+            font-size: 2em;
+            color: #e8d4d8;
+            margin-bottom: 30px;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            width: 200px;
+            margin: 15px auto;
+            font-size: 0.95em;
+        }
+        
+        .stats-label {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .stats-value {
+            color: #e8d4d8;
+            font-family: 'Caveat', cursive;
+            font-size: 1.2em;
+        }
+        
+        .stats-close {
+            margin-top: 30px;
+            color: rgba(196, 154, 158, 0.6);
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            K <span class="heart"><svg viewBox="0 0 50 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 手绘线条空心爱心 - 歪歪的轮廓 -->
+                <path d="M25 38 C23 36 8 26 6 17 C4 10 8 5 15 5 C19 5 22 7 25 11 C28 7 31 5 35 5 C42 5 46 10 44 17 C42 26 27 36 25 38Z" 
+                      fill="none" 
+                      stroke="#c49a9e" 
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"/>
+            </svg></span> F
+        </div>
+        
+        <button id="connectBtn" class="connect-btn" onclick="connectDevice()">
+            Connect
+        </button>
+        
+        <div id="controls" class="controls">
+            <div class="heartbeat-container">
+                <svg class="heartbeat-svg" viewBox="0 0 200 80">
+                    <path id="heartbeatLine" class="heartbeat-line" d="M 0,40 L 40,40 L 50,40 L 60,40 L 70,40 L 80,40 L 90,40 L 100,40 L 110,40 L 120,40 L 130,40 L 140,40 L 150,40 L 160,40 L 200,40"/>
+                </svg>
+                <div id="timerDisplay" class="timer-display"></div>
+            </div>
+            
+            <div class="input-area">
+                <input type="text" id="commandInput" class="command-input" placeholder="Obey." oninput="executeCommand(this.value)">
+            </div>
+        </div>
+        
+        <div class="footer">
+            Baby Breathe.
+        </div>
+        
+        <!-- 统计按钮 -->
+        <div class="stats-btn" onclick="toggleStats()">♡</div>
+        
+        <!-- 统计面板 -->
+        <div id="statsPanel" class="stats-panel">
+            <div class="stats-content">
+                <div class="stats-title">记录</div>
+                <div class="stats-item">
+                    <span class="stats-label">今天</span>
+                    <span id="todayDuration" class="stats-value">0 分钟</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">总时长</span>
+                    <span id="totalDuration" class="stats-value">0 分钟</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">总次数</span>
+                    <span id="totalSessions" class="stats-value">0 次</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">最长一次</span>
+                    <span id="longestSession" class="stats-value">0 秒</span>
+                </div>
+                <div class="stats-item">
+                    <span class="stats-label">最爱档位</span>
+                    <span id="favoriteLevel" class="stats-value">-</span>
+                </div>
+                <div class="stats-close" onclick="toggleStats()">关闭</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 注册 Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+        
+        function goFullscreen() {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+        }
+        
+        document.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                goFullscreen();
+            }
+        });
+        
+        let device = null;
+        let server = null;
+        let service = null;
+        let characteristic = null;
+        let currentLevel = 0;
+        let heartbeatInterval = null;
+        let timerInterval = null;
+        let timerSeconds = 0;
+        
+        // 统计相关
+        let sessionStartTime = null;
+        let stats = loadStats();
+        
+        function loadStats() {
+            const saved = localStorage.getItem('kf_stats');
+            if (saved) {
+                const data = JSON.parse(saved);
+                // 检查是否是新的一天
+                const today = new Date().toDateString();
+                if (data.todayDate !== today) {
+                    data.todayDuration = 0;
+                    data.todayDate = today;
+                }
+                return data;
+            }
+            return {
+                totalSessions: 0,
+                totalDuration: 0,
+                longestSession: 0,
+                levelCounts: {1:0, 2:0, 3:0, 4:0, 5:0, 6:0},
+                todayDuration: 0,
+                todayDate: new Date().toDateString()
+            };
+        }
+        
+        function saveStats() {
+            localStorage.setItem('kf_stats', JSON.stringify(stats));
+        }
+        
+        function updateStatsDisplay() {
+            document.getElementById('todayDuration').textContent = Math.floor(stats.todayDuration / 60) + ' 分钟';
+            document.getElementById('totalDuration').textContent = Math.floor(stats.totalDuration / 60) + ' 分钟';
+            document.getElementById('totalSessions').textContent = stats.totalSessions + ' 次';
+            document.getElementById('longestSession').textContent = stats.longestSession + ' 秒';
+            
+            // 找最爱档位
+            let maxLevel = 0;
+            let maxCount = 0;
+            for (let i = 1; i <= 6; i++) {
+                if (stats.levelCounts[i] > maxCount) {
+                    maxCount = stats.levelCounts[i];
+                    maxLevel = i;
+                }
+            }
+            document.getElementById('favoriteLevel').textContent = maxLevel > 0 ? maxLevel + ' 档' : '-';
+        }
+        
+        function toggleStats() {
+            const panel = document.getElementById('statsPanel');
+            if (panel.classList.contains('show')) {
+                panel.classList.remove('show');
+            } else {
+                updateStatsDisplay();
+                panel.classList.add('show');
+            }
+        }
+        
+        const SERVICE_UUID = '53300001-0023-4bd4-bbd5-a6920e4c5653';
+        const CHAR_WRITE_UUID = '53300003-0023-4bd4-bbd5-a6920e4c5653';
+        
+        const COMMANDS = {
+            0: '00000000763A31007D',
+            1: '00000000763A31017C',
+            2: '00000000763A31027F',
+            3: '00000000763A31037E',
+            4: '00000000763A310479',
+            5: '00000000763A310578',
+            6: '00000000763A31067B'
+        };
+        
+        // 心跳线动画
+        const flatLine = "M 0,40 L 200,40";
+        
+        // 连续波动线（1-3档用）
+        function getContinuousWave(phase, amplitude) {
+            const y1 = 40 + Math.sin(phase) * amplitude;
+            const y2 = 40 + Math.sin(phase + 1) * amplitude;
+            const y3 = 40 + Math.sin(phase + 2) * amplitude;
+            const y4 = 40 + Math.sin(phase + 3) * amplitude;
+            const y5 = 40 + Math.sin(phase + 4) * amplitude;
+            return `M 0,40 L 40,${y1} L 80,${y2} L 120,${y3} L 160,${y4} L 200,${y5}`;
+        }
+        
+        // 心跳线（4-6档用）
+        const smallBeat = "M 0,40 L 60,40 L 80,30 L 100,50 L 120,40 L 200,40";
+        const bigBeat = "M 0,40 L 50,40 L 70,20 L 90,60 L 110,35 L 130,45 L 150,40 L 200,40";
+        
+        let wavePhase = 0;
+        
+        function startHeartbeat(level) {
+            stopHeartbeat();
+            const line = document.getElementById('heartbeatLine');
+            line.classList.add('active');
+            
+            if (level === 0) {
+                // 等待状态：很慢的连续波动
+                heartbeatInterval = setInterval(() => {
+                    wavePhase += 0.1;
+                    line.setAttribute('d', getContinuousWave(wavePhase, 5));
+                }, 100);
+            } else if (level >= 1 && level <= 3) {
+                // 1-3档：连续波动，速度和幅度递增
+                const speed = [80, 50, 30][level - 1];
+                const amplitude = [8, 12, 18][level - 1];
+                heartbeatInterval = setInterval(() => {
+                    wavePhase += 0.2;
+                    line.setAttribute('d', getContinuousWave(wavePhase, amplitude));
+                }, speed);
+            } else if (level >= 4 && level <= 6) {
+                // 4-6档：跳停式
+                // 4档：间歇长(1200ms)，幅度小
+                // 5档：间歇最短(400ms)，幅度小
+                // 6档：间歇中等(800ms)，幅度最大
+                const intervals = [1200, 400, 800];
+                const beats = [smallBeat, smallBeat, bigBeat];
+                const interval = intervals[level - 4];
+                const beatLine = beats[level - 4];
+                
+                let isBeat = false;
+                heartbeatInterval = setInterval(() => {
+                    if (isBeat) {
+                        line.setAttribute('d', flatLine);
+                    } else {
+                        line.setAttribute('d', beatLine);
+                    }
+                    isBeat = !isBeat;
+                }, interval / 2);
+            }
+        }
+        
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+            const line = document.getElementById('heartbeatLine');
+            line.classList.remove('active');
+            line.setAttribute('d', flatLine);
+        }
+        
+        // 计时器
+        function startTimer(seconds) {
+            stopTimer();
+            timerSeconds = seconds;
+            const display = document.getElementById('timerDisplay');
+            display.classList.add('show');
+            display.textContent = timerSeconds;
+            
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                display.textContent = timerSeconds;
+                
+                if (timerSeconds <= 0) {
+                    stopTimer();
+                    sendStop();
+                }
+            }, 1000);
+        }
+        
+        function addTime(seconds) {
+            if (timerInterval) {
+                timerSeconds += seconds;
+                document.getElementById('timerDisplay').textContent = timerSeconds;
+            }
+        }
+        
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            document.getElementById('timerDisplay').classList.remove('show');
+        }
+        
+        function hexToBytes(hex) {
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return bytes;
+        }
+        
+        async function connectDevice() {
+            try {
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('connectBtn').textContent = 'Connecting...';
+                
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'XXD' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+                
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                
+                server = await device.gatt.connect();
+                service = await server.getPrimaryService(SERVICE_UUID);
+                characteristic = await service.getCharacteristic(CHAR_WRITE_UUID);
+                
+                document.getElementById('connectBtn').textContent = 'Connected';
+                document.getElementById('connectBtn').classList.add('connected');
+                document.getElementById('controls').classList.add('show');
+                
+                // 开始慢速心跳
+                startHeartbeat(0);
+                
+            } catch (error) {
+                console.error('Connection failed:', error);
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('connectBtn').textContent = 'Reconnect';
+            }
+        }
+        
+        function onDisconnected() {
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('connectBtn').textContent = 'Reconnect';
+            document.getElementById('connectBtn').classList.remove('connected');
+            document.getElementById('controls').classList.remove('show');
+            stopHeartbeat();
+            stopTimer();
+            currentLevel = 0;
+        }
+        
+        async function sendCommand(hex) {
+            if (!characteristic) return false;
+            
+            try {
+                const bytes = hexToBytes(hex);
+                await characteristic.writeValueWithoutResponse(bytes);
+                return true;
+            } catch (error) {
+                console.error('Send failed:', error);
+                return false;
+            }
+        }
+        
+        async function sendLevel(level) {
+            const success = await sendCommand(COMMANDS[level]);
+            if (success) {
+                // 如果之前在运行，先记录那次
+                if (currentLevel > 0 && sessionStartTime) {
+                    recordSession();
+                }
+                
+                currentLevel = level;
+                sessionStartTime = Date.now();
+                stats.levelCounts[level]++;
+                saveStats();
+                startHeartbeat(level);
+            }
+        }
+        
+        async function sendStop() {
+            const success = await sendCommand(COMMANDS[0]);
+            if (success) {
+                // 记录这次使用
+                if (currentLevel > 0 && sessionStartTime) {
+                    recordSession();
+                }
+                
+                currentLevel = 0;
+                sessionStartTime = null;
+                stopTimer();
+                startHeartbeat(0);
+            }
+        }
+        
+        function recordSession() {
+            const duration = Math.floor((Date.now() - sessionStartTime) / 1000);
+            if (duration > 0) {
+                stats.totalSessions++;
+                stats.totalDuration += duration;
+                stats.todayDuration += duration;
+                if (duration > stats.longestSession) {
+                    stats.longestSession = duration;
+                }
+                saveStats();
+            }
+        }
+        
+        function executeCommand(cmd) {
+            cmd = cmd.trim();
+            
+            setTimeout(() => {
+                document.getElementById('commandInput').value = '';
+            }, 500);
+            
+            // 停止
+            if (cmd.includes('停') || cmd.includes('休息') || cmd.includes('算了') || cmd.includes('好了')) {
+                sendStop();
+                return;
+            }
+            
+            // 检测计时器命令：X档忍Y秒 或 忍Y秒 或 X档Y秒
+            const timerMatch = cmd.match(/(\d+)\s*秒/);
+            if (timerMatch) {
+                const seconds = parseInt(timerMatch[1]);
+                
+                // 检测是否指定了档位
+                const levelMatch = cmd.match(/([1-6])\s*档/);
+                let level;
+                if (levelMatch) {
+                    level = parseInt(levelMatch[1]);
+                } else {
+                    // 没指定档位，随机1-6档
+                    level = Math.floor(Math.random() * 6) + 1;
+                }
+                
+                sendLevel(level);
+                startTimer(seconds);
+                return;
+            }
+            
+            // 检测加减时间
+            const addMatch = cmd.match(/\+\s*(\d+)/);
+            if (addMatch) {
+                addTime(parseInt(addMatch[1]));
+                return;
+            }
+            
+            const subMatch = cmd.match(/-\s*(\d+)/);
+            if (subMatch) {
+                addTime(-parseInt(subMatch[1]));
+                return;
+            }
+            
+            // 普通命令：按字数计算档位
+            const len = cmd.length;
+            if (len > 0) {
+                const level = (len % 6) + 1;
+                const delay = Math.random() * 2000;
+                setTimeout(() => {
+                    sendLevel(level);
+                }, delay);
+            }
+        }
+    </script>
+</body>
+</html>
