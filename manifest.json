@@ -1,7 +1,7 @@
 {
-  "name": "K ♡ F",
-  "short_name": "K♡F",
-  "description": "Our Controller",
+  "name": "K",
+  "short_name": "K",
+  "description": "K",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
