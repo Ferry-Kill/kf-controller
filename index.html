@@ -8,15 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="K♡F">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0d0d0f">
-    <meta name="description" content="K ♡ F 专属控制器">
-    
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
-    <!-- Icons -->
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
     <title>K ♡ F</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -197,52 +191,6 @@
             letter-spacing: 0.1em;
             color: #e8d4d8;
         }
-        
-        /* 安装提示 */
-        .install-prompt {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(180, 100, 120, 0.3);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 15px 20px;
-            text-align: center;
-            font-family: 'Caveat', cursive;
-            font-size: 1.1em;
-            color: #e8d4d8;
-            z-index: 100;
-        }
-        
-        .install-prompt.show {
-            display: block;
-        }
-        
-        .install-btn {
-            background: rgba(232, 212, 216, 0.2);
-            border: none;
-            color: #e8d4d8;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-family: 'Caveat', cursive;
-            font-size: 1em;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-        
-        .close-prompt {
-            position: absolute;
-            top: 5px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: #e8d4d8;
-            font-size: 1.2em;
-            cursor: pointer;
-            opacity: 0.6;
-        }
     </style>
 </head>
 <body>
@@ -281,47 +229,10 @@
         </div>
     </div>
     
-    <!-- 安装提示 -->
-    <div id="installPrompt" class="install-prompt">
-        <button class="close-prompt" onclick="hideInstallPrompt()">×</button>
-        添加到主屏幕？
-        <button class="install-btn" onclick="installApp()">安装</button>
-    </div>
-    
     <script>
-        // PWA 安装支持
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installPrompt').classList.add('show');
-        });
-        
-        function installApp() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('用户接受安装');
-                    }
-                    deferredPrompt = null;
-                    hideInstallPrompt();
-                });
-            }
-        }
-        
-        function hideInstallPrompt() {
-            document.getElementById('installPrompt').classList.remove('show');
-        }
-        
         // 注册 Service Worker
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker 注册成功'))
-                    .catch(err => console.log('Service Worker 注册失败:', err));
-            });
+            navigator.serviceWorker.register('./sw.js');
         }
         
         function goFullscreen() {
@@ -388,13 +299,11 @@
             line.classList.add('active');
             
             if (level === 0) {
-                // 等待状态：很慢的连续波动
                 heartbeatInterval = setInterval(() => {
                     wavePhase += 0.1;
                     line.setAttribute('d', getContinuousWave(wavePhase, 5));
                 }, 100);
             } else if (level >= 1 && level <= 3) {
-                // 1-3档：连续波动，速度和幅度递增
                 const speed = [80, 50, 30][level - 1];
                 const amplitude = [8, 12, 18][level - 1];
                 heartbeatInterval = setInterval(() => {
@@ -402,7 +311,6 @@
                     line.setAttribute('d', getContinuousWave(wavePhase, amplitude));
                 }, speed);
             } else if (level >= 4 && level <= 6) {
-                // 4-6档：跳停式
                 const intervals = [1200, 400, 800];
                 const beats = [smallBeat, smallBeat, bigBeat];
                 const interval = intervals[level - 4];
@@ -430,7 +338,6 @@
             line.setAttribute('d', flatLine);
         }
         
-        // 计时器
         function startTimer(seconds) {
             stopTimer();
             timerSeconds = seconds;
@@ -492,7 +399,6 @@
                 document.getElementById('connectBtn').classList.add('connected');
                 document.getElementById('controls').classList.add('show');
                 
-                // 开始慢速心跳
                 startHeartbeat(0);
                 
             } catch (error) {
@@ -549,24 +455,19 @@
                 document.getElementById('commandInput').value = '';
             }, 500);
             
-            // 停止
             if (cmd.includes('停') || cmd.includes('休息') || cmd.includes('算了') || cmd.includes('好了')) {
                 sendStop();
                 return;
             }
             
-            // 检测计时器命令：X档忍Y秒 或 忍Y秒 或 X档Y秒
             const timerMatch = cmd.match(/(\d+)\s*秒/);
             if (timerMatch) {
                 const seconds = parseInt(timerMatch[1]);
-                
-                // 检测是否指定了档位
                 const levelMatch = cmd.match(/([1-6])\s*档/);
                 let level;
                 if (levelMatch) {
                     level = parseInt(levelMatch[1]);
                 } else {
-                    // 没指定档位，随机1-6档
                     level = Math.floor(Math.random() * 6) + 1;
                 }
                 
@@ -575,7 +476,6 @@
                 return;
             }
             
-            // 检测加减时间
             const addMatch = cmd.match(/\+\s*(\d+)/);
             if (addMatch) {
                 addTime(parseInt(addMatch[1]));
@@ -588,7 +488,6 @@
                 return;
             }
             
-            // 普通命令：按字数计算档位
             const len = cmd.length;
             if (len > 0) {
                 const level = (len % 6) + 1;
