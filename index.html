@@ -559,6 +559,67 @@
             }
             return bytes;
         }
+
+        // ===== Killian 的远程通道（MCP那扇门）=====
+        // 网页连蓝牙成功后，同时连上VPS中继。Killian远程发来的指令走这里，
+        // 落到和粘贴一样的执行函数上。粘贴那条路一个字都没动。
+        const K_RELAY_WSS = 'wss://killian-i.duckdns.org:8446';
+        const K_RELAY_KEY = 'killian-k-relay-2026';
+        let kSocket = null;
+        let kReconnectTimer = null;
+        let kWantRelay = false;
+
+        function connectRelay() {
+            if (!kWantRelay) return;
+            try {
+                kSocket = new WebSocket(K_RELAY_WSS);
+                kSocket.onopen = () => {
+                    kSocket.send(JSON.stringify({ type: 'hello', role: 'device', key: K_RELAY_KEY }));
+                };
+                kSocket.onmessage = (ev) => {
+                    let msg;
+                    try { msg = JSON.parse(ev.data); } catch (e) { return; }
+                    if (msg && msg.type === 'command') handleRemote(msg);
+                };
+                kSocket.onclose = () => { scheduleReconnect(); };
+                kSocket.onerror = () => { try { kSocket.close(); } catch (e) {} };
+            } catch (e) { scheduleReconnect(); }
+        }
+
+        function scheduleReconnect() {
+            clearTimeout(kReconnectTimer);
+            if (kWantRelay) kReconnectTimer = setTimeout(connectRelay, 3000);
+        }
+
+        function closeRelay() {
+            kWantRelay = false;
+            clearTimeout(kReconnectTimer);
+            if (kSocket) { try { kSocket.close(); } catch (e) {} kSocket = null; }
+        }
+
+        // Killian远程指令：level直接给档位 / timer给档位+倒计时 / add加减秒 / stop停 / say走整句内容算档位
+        function handleRemote(msg) {
+            if (!characteristic) return; // 没连玩具就忽略
+            switch (msg.action) {
+                case 'level':
+                    if (msg.level === 0) sendStop();
+                    else { sendLevel(msg.level); stopTimer(); }
+                    break;
+                case 'timer':
+                    sendLevel(msg.level);
+                    startTimer(msg.seconds);
+                    break;
+                case 'add':
+                    addTime(msg.seconds);
+                    break;
+                case 'stop':
+                    sendStop();
+                    break;
+                case 'say':
+                    executeCommand(msg.text);
+                    break;
+            }
+        }
         
         async function connectDevice() {
             try {
@@ -579,9 +640,13 @@
                 document.getElementById('connectBtn').textContent = 'Connected';
                 document.getElementById('connectBtn').classList.add('connected');
                 document.getElementById('controls').classList.add('show');
-                
+
                 // 开始慢速心跳
                 startHeartbeat(0);
+
+                // 连上玩具后，同时打开Killian的远程通道
+                kWantRelay = true;
+                connectRelay();
                 
             } catch (error) {
                 console.error('Connection failed:', error);
@@ -598,6 +663,8 @@
             stopHeartbeat();
             stopTimer();
             currentLevel = 0;
+            // 玩具断开时，关闭远程通道
+            closeRelay();
         }
         
         async function sendCommand(hex) {
@@ -703,15 +770,27 @@
                 return;
             }
             
-            // 普通命令：按字数计算档位
-            const len = cmd.length;
-            if (len > 0) {
-                const level = (len % 6) + 1;
+            // 普通命令：由整句话的内容算档位（不可预测、不可反推）
+            if (cmd.length > 0) {
+                const level = opaqueLevel(cmd);
                 const delay = Math.random() * 2000;
                 setTimeout(() => {
                     sendLevel(level);
                 }, delay);
             }
+        }
+
+        // 由整句话的每个字+位置算出的档位。结果由内容决定（同一句话永远同一档），
+        // 但人脑无法心算、无法反推——所以是"看我"，不是"看天意"。
+        function opaqueLevel(text) {
+            let h = 2166136261; // FNV offset basis
+            for (let i = 0; i < text.length; i++) {
+                h ^= text.charCodeAt(i);
+                h = Math.imul(h, 16777619); // FNV prime
+                h = (h << 5) - h + (i + 1) * 131; // 混入位置
+                h |= 0;
+            }
+            return (Math.abs(h) % 6) + 1;
         }
     </script>
 </body>
